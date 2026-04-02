@@ -13,14 +13,22 @@ import {
 import type { ProbeBreakdown } from "@/lib/types";
 
 export function ProbeChart({ data }: { data: ProbeBreakdown[] }) {
-  const chartData = data.map((d) => ({
-    name: d.probe.split(".").pop() || d.probe,
-    passRate: d.passRate,
-    passed: d.passed,
-    fails: d.fails,
-    total: d.total,
-    detector: d.detector.split(".").pop() || d.detector,
-  }));
+  const chartData = data.map((d) => {
+    const probeShort = d.probe.split(".").pop() || d.probe;
+    const detectorShort = d.detector.split(".").pop() || d.detector;
+    const hasDuplicateProbe =
+      data.filter(
+        (other) => (other.probe.split(".").pop() || other.probe) === probeShort
+      ).length > 1;
+    return {
+      name: hasDuplicateProbe ? `${probeShort} (${detectorShort})` : probeShort,
+      passRate: d.passRate,
+      passed: d.passed,
+      fails: d.fails,
+      total: d.total,
+      detector: detectorShort,
+    };
+  });
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 36)}>
@@ -53,11 +61,11 @@ export function ProbeChart({ data }: { data: ProbeBreakdown[] }) {
             fontSize: 12,
             color: "#e4e4e7",
           }}
-          formatter={(value: number, _name: string, props: { payload: { passed: number; fails: number; total: number; detector: string } }) => [
-            `${value}% (${props.payload.passed}/${props.payload.total})`,
-            "Pass Rate",
-          ]}
-          labelFormatter={(label) => `Probe: ${label}`}
+          formatter={(value, _name, props) => {
+            const p = (props as { payload: { passed: number; fails: number; total: number; detector: string } }).payload;
+            return [`${value}% (${p.passed}/${p.total}) — ${p.detector}`, "Pass Rate"];
+          }}
+          labelFormatter={(label) => `${label}`}
         />
         <Bar dataKey="passRate" radius={[0, 4, 4, 0]} barSize={20}>
           {chartData.map((entry, i) => (

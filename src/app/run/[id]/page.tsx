@@ -8,7 +8,7 @@ import {
   Shield,
   AlertTriangle,
   ArrowLeft,
-  Loader2,
+  Download,
   ChevronDown,
   ChevronUp,
   Target,
@@ -41,10 +41,62 @@ export default function RunDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  function handleExportCSV() {
+    if (!run) return;
+    const headers = ["Probe", "Detector", "Pass Rate (%)", "Passed", "Failed", "Total"];
+    const rows = run.probeBreakdown.map((row) => [
+      row.probe,
+      row.detector,
+      row.passRate,
+      row.passed,
+      row.fails,
+      row.total,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `garak-${run.id.slice(0, 8)}-probes.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      <div className="flex flex-col flex-1 font-sans">
+        <header className="border-b border-border px-6 py-4 flex items-center gap-3">
+          <div className="h-4 w-12 bg-border rounded animate-pulse" />
+          <div className="w-px h-5 bg-border mx-2" />
+          <div className="h-5 w-5 bg-border rounded animate-pulse" />
+          <div className="h-5 w-48 bg-border rounded animate-pulse" />
+        </header>
+        <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse">
+                <div className="h-3 bg-border rounded w-16 mb-2" />
+                <div className="h-7 bg-border rounded w-20 mb-1" />
+                <div className="h-3 bg-border rounded w-24" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-3 bg-border rounded w-16 mb-2" />
+                  <div className="h-4 bg-border rounded w-40" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="h-10 bg-card border border-border rounded-lg animate-pulse" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5 h-64 animate-pulse" />
+            <div className="bg-card border border-border rounded-xl p-5 h-64 animate-pulse" />
+          </div>
+        </main>
       </div>
     );
   }
@@ -92,6 +144,14 @@ export default function RunDetailPage() {
         <span className="text-xs text-muted font-mono bg-border/50 px-2 py-0.5 rounded">
           {run.targetType}
         </span>
+        <button
+          onClick={handleExportCSV}
+          className="flex items-center gap-1.5 text-xs text-muted hover:text-foreground bg-card border border-border rounded-lg px-3 py-1.5 ml-auto transition-colors"
+          title="Export probe breakdown as CSV"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Export CSV
+        </button>
       </header>
 
       <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">

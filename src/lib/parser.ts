@@ -10,7 +10,7 @@ import type {
   ProbeBreakdown,
 } from "./types";
 
-const GARAK_RUNS_DIR =
+export const GARAK_RUNS_DIR =
   process.env.GARAK_RUNS_DIR ||
   path.join(
     process.env.USERPROFILE || process.env.HOME || "",
@@ -32,8 +32,8 @@ function parseJsonl<T>(filePath: string): T[] {
   for (const line of lines) {
     try {
       results.push(JSON.parse(line) as T);
-    } catch {
-      // skip malformed lines
+    } catch (err) {
+      console.warn(`[garak-viewer] Skipping malformed JSONL line in ${path.basename(filePath)}: ${(err as Error).message}`);
     }
   }
   return results;
@@ -46,6 +46,10 @@ function extractRunId(filename: string): string {
 }
 
 export function listRuns(): RunSummary[] {
+  if (!fs.existsSync(GARAK_RUNS_DIR)) {
+    console.warn(`[garak-viewer] Runs directory not found: ${GARAK_RUNS_DIR}`);
+    return [];
+  }
   const files = fs.readdirSync(GARAK_RUNS_DIR);
   const reportFiles = files.filter((f) => f.endsWith(".report.jsonl"));
 

@@ -72,6 +72,12 @@ export interface RunSummary {
   hasHitlog: boolean;
   hitCount: number;
   fileSize: number;
+  runsDir?: string;
+}
+
+export interface RunsListResponse {
+  runs: RunSummary[];
+  runsDir: string;
 }
 
 export interface RunDetail extends RunSummary {

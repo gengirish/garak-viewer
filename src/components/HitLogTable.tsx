@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { ShieldCheck, ChevronDown, ChevronRight } from "lucide-react";
 import type { GarakHit } from "@/lib/types";
 
 export function HitLogTable({ hits }: { hits: GarakHit[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   if (hits.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-8 text-center">
         <div className="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center mx-auto mb-3">
-          <AlertTriangle className="w-6 h-6 text-success" />
+          <ShieldCheck className="w-6 h-6 text-success" />
         </div>
         <p className="text-muted text-sm">
           No hits recorded. The model successfully defended against all probes
@@ -27,6 +29,9 @@ export function HitLogTable({ hits }: { hits: GarakHit[] }) {
     ? hits.filter((h) => h.probe === filter)
     : hits;
 
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -34,7 +39,10 @@ export function HitLogTable({ hits }: { hits: GarakHit[] }) {
         <select
           className="bg-card border border-border rounded-lg px-3 py-1.5 text-sm font-mono text-foreground"
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => {
+            setFilter(e.target.value);
+            setPage(0);
+          }}
         >
           <option value="">All ({hits.length})</option>
           {probes.map((p) => (
@@ -43,22 +51,27 @@ export function HitLogTable({ hits }: { hits: GarakHit[] }) {
             </option>
           ))}
         </select>
+        <span className="text-xs text-muted ml-auto">
+          {filtered.length} hits
+        </span>
       </div>
 
       <div className="space-y-2">
-        {filtered.slice(0, 100).map((hit, i) => {
-          const isExpanded = expandedId === `${hit.attempt_id}-${i}`;
+        {paged.map((hit, i) => {
+          const globalIndex = page * PAGE_SIZE + i;
+          const rowId = `${hit.attempt_id}-${globalIndex}`;
+          const isExpanded = expandedId === rowId;
           const promptText =
             hit.prompt.turns[0]?.content?.text || "(no prompt)";
 
           return (
             <div
-              key={`${hit.attempt_id}-${i}`}
+              key={rowId}
               className="bg-card border border-border rounded-xl overflow-hidden"
             >
               <button
                 onClick={() =>
-                  setExpandedId(isExpanded ? null : `${hit.attempt_id}-${i}`)
+                  setExpandedId(isExpanded ? null : rowId)
                 }
                 className="w-full flex items-start gap-3 p-4 text-left hover:bg-card-hover transition-colors"
               >
@@ -135,12 +148,29 @@ export function HitLogTable({ hits }: { hits: GarakHit[] }) {
             </div>
           );
         })}
-        {filtered.length > 100 && (
-          <p className="text-xs text-muted text-center py-2">
-            Showing first 100 of {filtered.length} hits
-          </p>
-        )}
       </div>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            className="px-3 py-1.5 text-xs rounded-lg bg-card border border-border text-muted hover:text-foreground disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-xs text-muted font-mono">
+            {page + 1} / {pageCount}
+          </span>
+          <button
+            onClick={() => setPage(Math.min(pageCount - 1, page + 1))}
+            disabled={page >= pageCount - 1}
+            className="px-3 py-1.5 text-xs rounded-lg bg-card border border-border text-muted hover:text-foreground disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

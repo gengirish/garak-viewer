@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { RunSummary } from "@/lib/types";
 import {
@@ -10,7 +10,7 @@ import {
   Clock,
   Target,
   ChevronRight,
-  Loader2,
+  Search,
 } from "lucide-react";
 
 function formatBytes(bytes: number): string {
@@ -39,13 +39,20 @@ export default function Home() {
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [runsDir, setRunsDir] = useState("");
 
   useEffect(() => {
     fetch("/api/runs")
       .then((r) => r.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
-        setRuns(data);
+        if (Array.isArray(data)) {
+          setRuns(data);
+        } else {
+          setRuns(data.runs || []);
+          setRunsDir(data.runsDir || "");
+        }
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -56,10 +63,53 @@ export default function Home() {
   const totalHits = runs.reduce((s, r) => s + r.hitCount, 0);
   const uniqueModels = [...new Set(runs.map((r) => r.targetName))].length;
 
+  const filteredRuns = useMemo(() => {
+    return runs.filter((run) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        run.targetName.toLowerCase().includes(q) ||
+        run.probeSpec.toLowerCase().includes(q) ||
+        run.targetType.toLowerCase().includes(q) ||
+        run.id.toLowerCase().includes(q)
+      );
+    });
+  }, [runs, search]);
+
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      <div className="flex flex-col flex-1 font-sans">
+        <header className="border-b border-border px-6 py-4 flex items-center gap-3">
+          <Shield className="w-7 h-7 text-accent" />
+          <h1 className="text-xl font-bold tracking-tight">Garak Report Viewer</h1>
+        </header>
+        <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse">
+                <div className="h-4 bg-border rounded w-24 mb-3" />
+                <div className="h-8 bg-border rounded w-16" />
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="h-6 bg-border rounded w-32 mb-3 animate-pulse" />
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-card border border-border rounded-xl px-5 py-4 animate-pulse">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-border" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-border rounded w-48" />
+                      <div className="h-3 bg-border rounded w-72" />
+                    </div>
+                    <div className="h-4 bg-border rounded w-20" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -82,9 +132,14 @@ export default function Home() {
         <h1 className="text-xl font-bold tracking-tight">
           Garak Report Viewer
         </h1>
-        <span className="text-xs text-muted font-mono ml-auto">
-          {GARAK_RUNS_DIR_LABEL}
-        </span>
+        {runsDir && (
+          <span
+            className="text-xs text-muted font-mono ml-auto truncate max-w-xs"
+            title={runsDir}
+          >
+            {runsDir}
+          </span>
+        )}
       </header>
 
       <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
@@ -118,9 +173,21 @@ export default function Home() {
 
         {/* Run List */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Scan Runs</h2>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="text-lg font-semibold">Scan Runs</h2>
+            <div className="relative ml-auto">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                placeholder="Search by model, probe, or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-card border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-foreground placeholder:text-muted w-72 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent"
+              />
+            </div>
+          </div>
           <div className="space-y-2">
-            {runs.map((run) => (
+            {filteredRuns.map((run) => (
               <Link
                 key={run.id}
                 href={`/run/${run.id}`}
@@ -184,13 +251,16 @@ export default function Home() {
               </Link>
             ))}
           </div>
+          {filteredRuns.length === 0 && search && (
+            <p className="text-muted text-sm text-center py-8">
+              No runs matching &ldquo;{search}&rdquo;
+            </p>
+          )}
         </div>
       </main>
     </div>
   );
 }
-
-const GARAK_RUNS_DIR_LABEL = "~/.local/share/garak/garak_runs";
 
 function SummaryCard({
   icon,
