@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f0f14;
+  --foreground: #e4e4e7;
+  --card: #18181f;
+  --card-hover: #1e1e27;
+  --border: #27272a;
+  --accent: #76b900;
+  --accent-dim: #5a8f00;
+  --danger: #ef4444;
+  --danger-dim: #991b1b;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  --muted: #71717a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-danger: var(--danger);
+  --color-danger-dim: var(--danger-dim);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
